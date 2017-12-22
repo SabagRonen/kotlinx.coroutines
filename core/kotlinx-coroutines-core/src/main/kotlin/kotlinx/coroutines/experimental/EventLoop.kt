@@ -80,7 +80,6 @@ internal abstract class EventLoopBase: CoroutineDispatcher(), Delay, EventLoop {
     private val queue = LockFreeLinkedListHead()
     private val delayed = ThreadSafeHeap<DelayedTask>()
 
-    protected abstract val canComplete: Boolean
     protected abstract val isCompleted: Boolean
     protected abstract fun unpark()
     protected abstract fun isCorrectThread(): Boolean
@@ -142,11 +141,11 @@ internal abstract class EventLoopBase: CoroutineDispatcher(), Delay, EventLoop {
     }
 
     private fun enqueueImpl(queuedTask: QueuedTask): Boolean {
-        if (!canComplete) {
-            queue.addLast(queuedTask)
-            return true
+        queue.addLast(queuedTask)
+        if (isCompleted && queuedTask.remove()) {
+            return false
         }
-        return queue.addLastIf(queuedTask) { !isCompleted }
+        return true
     }
 
     internal fun schedule(delayedTask: DelayedTask) {
@@ -158,10 +157,6 @@ internal abstract class EventLoopBase: CoroutineDispatcher(), Delay, EventLoop {
     }
 
     private fun scheduleImpl(delayedTask: DelayedTask): Boolean {
-        if (!canComplete) {
-            delayed.addLast(delayedTask)
-            return true
-        }
         return delayed.addLastIf(delayedTask) { !isCompleted }
     }
 
@@ -270,7 +265,6 @@ internal abstract class ThreadEventLoop(
 private class EventLoopImpl(thread: Thread) : ThreadEventLoop(thread) {
     private var parentJob: Job? = null
 
-    override val canComplete: Boolean get() = parentJob != null
     override val isCompleted: Boolean get() = parentJob?.isCompleted == true
 
     fun initParentJob(parentJob: Job) {
@@ -280,7 +274,6 @@ private class EventLoopImpl(thread: Thread) : ThreadEventLoop(thread) {
 }
 
 internal class BlockingEventLoop(thread: Thread) : ThreadEventLoop(thread) {
-    override val canComplete: Boolean get() = true
     @Volatile
     public override var isCompleted: Boolean = false
 }

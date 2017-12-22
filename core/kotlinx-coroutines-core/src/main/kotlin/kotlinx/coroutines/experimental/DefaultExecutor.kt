@@ -21,7 +21,6 @@ import java.util.concurrent.TimeUnit
 @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
 internal object DefaultExecutor : EventLoopBase(), Runnable {
 
-    override val canComplete: Boolean get() = false
     override val isCompleted: Boolean get() = false
 
     private const val DEFAULT_KEEP_ALIVE = 1000L // in milliseconds
