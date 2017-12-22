@@ -110,7 +110,8 @@ internal class DispatchTask<in T>(
     private val value: Any?, // T | Throwable
     private val exception: Boolean,
     private val cancellable: Boolean
-) : Runnable {
+) : EventLoopBase.QueuedTask() {
+
     @Suppress("UNCHECKED_CAST")
     override fun run() {
         try {
